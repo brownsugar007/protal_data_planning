@@ -242,7 +242,8 @@
 				<label class="form-label" for="f-search">Pencarian</label>
 				<input id="f-search" type="text" class="form-input" placeholder="Voucher/ID..." bind:value={filterSearch} />
 			</div>
-			<div class="filter-actions">
+		</div>
+		<div class="filter-actions">
 				<button class="btn btn-primary" onclick={applyDateFilter}>
 					<Search size={16} /> Cari
 				</button>
@@ -282,7 +283,6 @@
 					<Trash2 size={16} /> Rollback
 				</button>
 			</div>
-		</div>
 	</div>
 
 	{#if filteredData.length > 0}
