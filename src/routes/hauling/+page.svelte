@@ -380,16 +380,14 @@
 		color: var(--text-primary);
 	}
 
-	.hidden { display: none; }
+<!-- TOAST NOTIFICATION -->
+{#if toast}
+	<div class="toast-container" style="position:fixed;bottom:20px;right:20px;z-index:9999;">
+		<div class="toast" style="padding:16px;border-radius:8px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:12px;background:white;border-left:4px solid {toast.type === 'error' ? '#ef4444' : '#10b981'};">
+			<span>{toast.type === 'error' ? '❌' : '✅'}</span>
+			<span>{toast.msg}</span>
+		</div>
+	</div>
+{/if}
 
-	.spinner {
-		width: 18px;
-		height: 18px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
-		border-top-color: white;
-		border-radius: 50%;
-		animation: spin 0.6s linear infinite;
-		display: inline-block;
-	}
-	@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+<style>
