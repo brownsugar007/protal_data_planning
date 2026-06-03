@@ -13,7 +13,7 @@
 
 	let showRollbackModal = $state(false);
 	let filterShift = $state('Semua');
-	let filterLoc = $state('Semua');
+	let filterSource = $state('Semua');
 	let filterVendor = $state('Semua');
 	let filterUnit = $state('Semua');
 	let filterSearch = $state('');
@@ -50,7 +50,7 @@
 
 	function refresh() {
 		filterShift = 'Semua';
-		filterLoc = 'Semua';
+		filterSource = 'Semua';
 		filterVendor = 'Semua';
 		filterUnit = 'Semua';
 		filterSearch = '';
@@ -60,25 +60,25 @@
 		showToast('Semua filter di-reset dan data di-refresh!', 'info');
 	}
 
-	let availableLocs = $derived.by(() => {
+	let availableSources = $derived.by(() => {
 		let d = data.fuelData || [];
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
 		if (filterVendor !== 'Semua') d = d.filter(r => String(r.vendor) === String(filterVendor));
 		if (filterUnit !== 'Semua') d = d.filter(r => String(r.unit_code) === String(filterUnit));
-		let opts = [...new Set(d.map(r => r.alocation))].filter(Boolean);
-		if (opts.length === 0 || (filterShift === 'Semua' && filterVendor === 'Semua' && filterUnit === 'Semua')) opts = data.filters.locations || [];
+		let opts = [...new Set(d.map(r => r.source))].filter(Boolean);
+		if (opts.length === 0 || (filterShift === 'Semua' && filterVendor === 'Semua' && filterUnit === 'Semua')) opts = data.filters.sources || [];
 		opts.sort();
-		if (filterLoc !== 'Semua' && !opts.includes(filterLoc)) opts.unshift(filterLoc);
+		if (filterSource !== 'Semua' && !opts.includes(filterSource)) opts.unshift(filterSource);
 		return opts;
 	});
 
 	let availableVendors = $derived.by(() => {
 		let d = data.fuelData || [];
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
-		if (filterLoc !== 'Semua') d = d.filter(r => String(r.alocation) === String(filterLoc));
+		if (filterSource !== 'Semua') d = d.filter(r => String(r.source) === String(filterSource));
 		if (filterUnit !== 'Semua') d = d.filter(r => String(r.unit_code) === String(filterUnit));
 		let opts = [...new Set(d.map(r => r.vendor))].filter(Boolean);
-		if (opts.length === 0 || (filterShift === 'Semua' && filterLoc === 'Semua' && filterUnit === 'Semua')) opts = data.filters.vendors || [];
+		if (opts.length === 0 || (filterShift === 'Semua' && filterSource === 'Semua' && filterUnit === 'Semua')) opts = data.filters.vendors || [];
 		opts.sort();
 		if (filterVendor !== 'Semua' && !opts.includes(filterVendor)) opts.unshift(filterVendor);
 		return opts;
@@ -87,10 +87,10 @@
 	let availableUnits = $derived.by(() => {
 		let d = data.fuelData || [];
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
-		if (filterLoc !== 'Semua') d = d.filter(r => String(r.alocation) === String(filterLoc));
+		if (filterSource !== 'Semua') d = d.filter(r => String(r.source) === String(filterSource));
 		if (filterVendor !== 'Semua') d = d.filter(r => String(r.vendor) === String(filterVendor));
 		let opts = [...new Set(d.map(r => r.unit_code))].filter(Boolean);
-		if (opts.length === 0 || (filterShift === 'Semua' && filterLoc === 'Semua' && filterVendor === 'Semua')) opts = data.filters.units || [];
+		if (opts.length === 0 || (filterShift === 'Semua' && filterSource === 'Semua' && filterVendor === 'Semua')) opts = data.filters.units || [];
 		opts.sort();
 		if (filterUnit !== 'Semua' && !opts.includes(filterUnit)) opts.unshift(filterUnit);
 		return opts;
@@ -99,7 +99,7 @@
 	let filteredData = $derived.by(() => {
 		let d = data.fuelData || [];
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) == String(filterShift));
-		if (filterLoc !== 'Semua') d = d.filter(r => String(r.alocation) == String(filterLoc));
+		if (filterSource !== 'Semua') d = d.filter(r => String(r.source) == String(filterSource));
 		if (filterVendor !== 'Semua') d = d.filter(r => String(r.vendor) == String(filterVendor));
 		if (filterUnit !== 'Semua') d = d.filter(r => String(r.unit_code) == String(filterUnit));
 		if (filterSearch) {
@@ -156,10 +156,10 @@
 				</select>
 			</div>
 			<div class="form-group">
-				<label class="form-label" for="f-loc">Lokasi</label>
-				<select id="f-loc" class="form-select" bind:value={filterLoc}>
+				<label class="form-label" for="f-source">Source (Fueltruck)</label>
+				<select id="f-source" class="form-select" bind:value={filterSource}>
 					<option>Semua</option>
-					{#each availableLocs as l}<option>{l}</option>{/each}
+					{#each availableSources as s}<option>{s}</option>{/each}
 				</select>
 			</div>
 			<div class="form-group">

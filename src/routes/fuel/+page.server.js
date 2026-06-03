@@ -7,10 +7,10 @@ export async function load({ url }) {
 	const dateStart = url.searchParams.get('date_start') || '';
 	const dateEnd = url.searchParams.get('date_end') || '';
 
-	const [vendors, units, locations] = await Promise.all([
+	const [vendors, units, sources] = await Promise.all([
 		getDistinct('fuel', 'vendor').catch(() => []),
 		getDistinct('fuel', 'unit_code').catch(() => []),
-		getDistinct('fuel', 'alocation').catch(() => [])
+		getDistinct('fuel', 'source').catch(() => [])
 	]);
 
 	let sql = `SELECT id, unit_fix, date, periode, shift, time, reg_no, unit_code, unit_model, unit_type, brand, vendor, alocation, km, hm, fm_awal, fm_akhir, refueling, source, location, operator, fuelman, no_voucher FROM fuel WHERE 1=1`;
@@ -32,7 +32,7 @@ export async function load({ url }) {
 
 	return {
 		fuelData: serialize(fuelData),
-		filters: { vendors, units, locations },
+		filters: { vendors, units, sources },
 		dateStart,
 		dateEnd
 	};
