@@ -34,7 +34,7 @@ export async function load({ url }) {
 			params.push(dateStart);
 		}
 
-		sql += dateStart ? ' ORDER BY date DESC LIMIT 5000' : ' ORDER BY date DESC LIMIT 150';
+		sql += dateStart ? ' ORDER BY date DESC LIMIT 5000' : ' ORDER BY date DESC LIMIT 2000';
 		haulingData = await query(sql, params).catch(() => []);
 	}
 
@@ -50,7 +50,7 @@ export async function load({ url }) {
 			params.push(dateStart);
 		}
 
-		sql += dateStart ? ' ORDER BY date DESC LIMIT 5000' : ' ORDER BY date DESC LIMIT 150';
+		sql += dateStart ? ' ORDER BY date DESC LIMIT 5000' : ' ORDER BY date DESC LIMIT 2000';
 		transitData = await query(sql, params).catch(() => []);
 	}
 

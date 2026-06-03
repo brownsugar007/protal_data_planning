@@ -24,7 +24,7 @@ export async function load({ url }) {
 		params.push(dateStart);
 	}
 
-	sql += dateStart ? ' ORDER BY date DESC, id DESC' : ' ORDER BY date DESC, id DESC LIMIT 150';
+	sql += dateStart ? ' ORDER BY date DESC, id DESC' : ' ORDER BY date DESC, id DESC LIMIT 2000';
 
 	let fuelData = await query(sql, params).catch(() => []);
 

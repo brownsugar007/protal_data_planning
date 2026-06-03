@@ -65,7 +65,7 @@ export async function load({ url }) {
 				sql += ' AND date = ?';
 				params.push(dateStart);
 			}
-			sql += dateStart ? ' ORDER BY date DESC, id DESC LIMIT 2000' : ' ORDER BY date DESC, id DESC LIMIT 50';
+			sql += dateStart ? ' ORDER BY date DESC, id DESC LIMIT 2000' : ' ORDER BY date DESC, id DESC LIMIT 500';
 			allData[name] = await query(sql, params);
 		} catch {
 			allData[name] = [];

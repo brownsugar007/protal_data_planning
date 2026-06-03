@@ -65,8 +65,10 @@
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
 		if (filterVendor !== 'Semua') d = d.filter(r => String(r.vendor) === String(filterVendor));
 		if (filterUnit !== 'Semua') d = d.filter(r => String(r.unit_code) === String(filterUnit));
-		let opts = [...new Set(d.map(r => r.alocation))].filter(Boolean).sort();
-		if (filterLoc !== 'Semua' && !opts.includes(filterLoc)) opts.unshift(filterLoc); // Keep current if valid
+		let opts = [...new Set(d.map(r => r.alocation))].filter(Boolean);
+		if (opts.length === 0 || (filterShift === 'Semua' && filterVendor === 'Semua' && filterUnit === 'Semua')) opts = data.filters.locations || [];
+		opts.sort();
+		if (filterLoc !== 'Semua' && !opts.includes(filterLoc)) opts.unshift(filterLoc);
 		return opts;
 	});
 
@@ -75,7 +77,9 @@
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
 		if (filterLoc !== 'Semua') d = d.filter(r => String(r.alocation) === String(filterLoc));
 		if (filterUnit !== 'Semua') d = d.filter(r => String(r.unit_code) === String(filterUnit));
-		let opts = [...new Set(d.map(r => r.vendor))].filter(Boolean).sort();
+		let opts = [...new Set(d.map(r => r.vendor))].filter(Boolean);
+		if (opts.length === 0 || (filterShift === 'Semua' && filterLoc === 'Semua' && filterUnit === 'Semua')) opts = data.filters.vendors || [];
+		opts.sort();
 		if (filterVendor !== 'Semua' && !opts.includes(filterVendor)) opts.unshift(filterVendor);
 		return opts;
 	});
@@ -85,7 +89,9 @@
 		if (filterShift !== 'Semua') d = d.filter(r => String(r.shift) === String(filterShift));
 		if (filterLoc !== 'Semua') d = d.filter(r => String(r.alocation) === String(filterLoc));
 		if (filterVendor !== 'Semua') d = d.filter(r => String(r.vendor) === String(filterVendor));
-		let opts = [...new Set(d.map(r => r.unit_code))].filter(Boolean).sort();
+		let opts = [...new Set(d.map(r => r.unit_code))].filter(Boolean);
+		if (opts.length === 0 || (filterShift === 'Semua' && filterLoc === 'Semua' && filterVendor === 'Semua')) opts = data.filters.units || [];
+		opts.sort();
 		if (filterUnit !== 'Semua' && !opts.includes(filterUnit)) opts.unshift(filterUnit);
 		return opts;
 	});
