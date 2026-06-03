@@ -379,6 +379,7 @@
 		background: rgba(14, 165, 233, 0.1);
 		color: var(--text-primary);
 	}
+</style>
 
 <!-- TOAST NOTIFICATION -->
 {#if toast}
@@ -389,5 +390,3 @@
 		</div>
 	</div>
 {/if}
-
-<style>
