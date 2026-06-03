@@ -73,17 +73,15 @@ export const actions = {
 					let v = normalized[col] ?? null;
 					if (col === 'date' && v instanceof Date) v = v.toISOString().split('T')[0];
 					if (col === 'time' && v instanceof Date) v = v.toTimeString().split(' ')[0];
-					acc[col] = v;
-					return acc;
-				}, {});
+					return v;
+				});
 			});
 
 			if (!rows.length) return fail(400, { uploadError: 'Tidak ada baris valid.' });
 
-			const cols = Object.keys(rows[0]);
-			const sql = `INSERT IGNORE INTO fuel (${cols.join(', ')}) VALUES ?`;
+			const sql = `INSERT IGNORE INTO fuel (${dbCols.join(', ')}) VALUES ?`;
 
-			const success = await executeMany(sql, rows.map(Object.values));
+			const success = await executeMany(sql, rows);
 			if (!success) return fail(500, { uploadError: 'Gagal menyimpan data Fuel.' });
 
 			return { uploadSuccess: true, rowCount: rows.length };
