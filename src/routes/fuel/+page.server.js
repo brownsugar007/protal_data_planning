@@ -41,9 +41,13 @@ export async function load({ url }) {
 /** @type {import('./$types').Actions} */
 export const actions = {
 	upload: async ({ request }) => {
+		console.log('UPLOAD ACTION TRIGGERED for FUEL');
 		const formData = await request.formData();
 		const file = /** @type {File} */ (formData.get('file'));
-		if (!file || file.size === 0) return fail(400, { uploadError: 'File tidak ditemukan.' });
+		if (!file || file.size === 0) {
+			console.log('No file provided');
+			return fail(400, { uploadError: 'File tidak ditemukan.' });
+		}
 
 		try {
 			const buffer = Buffer.from(await file.arrayBuffer());
