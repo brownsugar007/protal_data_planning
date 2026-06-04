@@ -188,18 +188,18 @@
 	<title>Coal Hauling & Transit — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
 	<div>
 		<h1 class="page-title">Modul Coal Hauling & Transit</h1>
 		<p class="page-subtitle">Sinkronisasi data produksi batubara (Coal Hauling dan Coal Transit).</p>
 	</div>
-	<div class="header-actions" style="display:flex; gap:8px; align-items:center;">
-		<a href="/api/template?type={subModule}" class="btn btn-ghost" style="color:var(--text-secondary);background:white;border:1px solid #e2e8f0;" title="Download Template Excel Kosong">
+	<div class="header-actions" style="display:flex; gap:12px; align-items:center;">
+		<a href="/api/template?type={subModule}" class="btn btn-ghost" title="Download Template Excel Kosong">
 			<Download size={16} /> Template
 		</a>
 		<form method="POST" action="?/{subModule === 'transit' ? 'uploadTransit' : 'uploadHauling'}" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
 			<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-			<button type="button" class="btn" style="background:#3b82f6;color:white;border:none;" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+			<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
 				{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
 			</button>
 		</form>
