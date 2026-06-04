@@ -8,6 +8,33 @@
 	import { showToast } from '$lib/stores/auth.js';
 	import { Monitor, Upload, Trash2, Search, RefreshCw, Download } from '@lucide/svelte';
 
+	const SHEET_MAPPING = {
+		'db_ob': 'ob_ob',
+		'db_ob inpit': 'ob_ob_inpit',
+		'db_event': 'ob_event',
+		'db_event mge': 'ob_event_mge',
+		'db_problem prodty': 'ob_problem_prodty',
+		'performance subcont': 'ob_performance_subcont',
+		'weather': 'ob_weather',
+		'freq weather': 'ob_freq_weather',
+		'volume ob by js': 'ob_volume_ob_by_js',
+		'db_material': 'ob_material'
+	};
+
+	const COL_MAPPING = {
+		'sub material': 'sub_material',
+		'volume adjst by js': 'volume_adjst_by_js',
+		'desc.': 'description',
+		'start': 'start_time',
+		'stop': 'stop_time',
+		'desc.lama': 'desc_lama',
+		"problem prod'ty": 'problem_prodty',
+		"problem prod'ty.lama": 'problem_prodty_lama',
+		'pa fmc': 'pa_fmc',
+		'volume js': 'volume_js',
+		'type material': 'type_material'
+	};
+
 	/** @type {{ data: any, form: any }} */
 	let { data, form } = $props();
 
@@ -25,6 +52,7 @@
 	let confirmText = $state('');
 	let uploadFile = $state(null);
 	let uploading = $state(false);
+	let uploadProgress = $state(0);
 
 	$effect(() => {
 		if (form?.uploadSuccess) {
@@ -57,6 +85,96 @@
 		dateEnd = '';
 		applyDateFilter();
 		showToast('Semua filter di-reset dan data di-refresh!', 'info');
+	}
+
+	async function handleOBUpload(event) {
+		const input = /** @type {HTMLInputElement} */ (event.target);
+		const file = input.files?.[0];
+		if (!file) return;
+		input.value = '';
+
+		uploading = true;
+		uploadProgress = 0;
+		showToast('Membaca file Excel OB...', 'info');
+
+		try {
+			const XLSX = await import('xlsx');
+			const buffer = await file.arrayBuffer();
+			const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+
+			let successCount = 0;
+			const errors = [];
+			const totalSheets = workbook.SheetNames.length;
+
+			for (let si = 0; si < totalSheets; si++) {
+				const sheetName = workbook.SheetNames[si];
+				const sheetLower = sheetName.trim().toLowerCase();
+				const tableName = SHEET_MAPPING[sheetLower];
+				if (!tableName) {
+					errors.push(`Sheet '${sheetName}' tidak dikenali.`);
+					continue;
+				}
+
+				try {
+					const sheet = workbook.Sheets[sheetName];
+					const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
+					if (!jsonData.length) { errors.push(`Sheet '${sheetName}' kosong.`); continue; }
+
+					// Process rows
+					const processedRows = jsonData.map(row => {
+						const processed = {};
+						for (let [key, val] of Object.entries(row)) {
+							let colName = key.toLowerCase().trim();
+							if (COL_MAPPING[colName]) colName = COL_MAPPING[colName];
+							colName = colName.replace(/ /g, '_').replace(/\./g, '').replace(/'/g, '');
+							if (colName === 'date' && val instanceof Date) {
+								const fixed = new Date(val.getTime() + 43200000);
+								val = `${fixed.getFullYear()}-${String(fixed.getMonth() + 1).padStart(2, '0')}-${String(fixed.getDate()).padStart(2, '0')}`;
+							} else if (val instanceof Date) {
+								val = val.toTimeString().split(' ')[0];
+							}
+							if (val === undefined || val === '') val = null;
+							processed[colName] = val;
+						}
+						return processed;
+					});
+
+					const cols = Object.keys(processedRows[0]);
+					const rows = processedRows.map(row => cols.map(c => row[c] ?? null));
+
+					// Send in batches
+					const batchSize = 500;
+					let sheetOk = true;
+					for (let i = 0; i < rows.length; i += batchSize) {
+						const batch = rows.slice(i, i + batchSize);
+						const resp = await fetch('/api/upload-batch', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ table: tableName, columns: cols, rows: batch })
+						});
+						if (!resp.ok) { sheetOk = false; break; }
+					}
+					if (sheetOk) successCount++;
+					else errors.push(`Gagal upload sheet '${sheetName}'.`);
+				} catch (err) {
+					errors.push(`Error sheet '${sheetName}': ${err.message}`);
+				}
+
+				uploadProgress = Math.round(((si + 1) / totalSheets) * 100);
+			}
+
+			if (successCount > 0) {
+				showToast(`${successCount}/${totalSheets} sheet OB berhasil diunggah!`, successCount === totalSheets ? 'success' : 'info');
+				await invalidateAll();
+			} else {
+				showToast(errors[0] || 'Gagal upload OB.', 'error');
+			}
+		} catch (err) {
+			showToast(`Error: ${err.message}`, 'error');
+		} finally {
+			uploading = false;
+			uploadProgress = 0;
+		}
 	}
 
 	function getFilteredData(tabName) {
@@ -142,12 +260,12 @@
 	<a href="/api/template?type=ob" class="btn btn-ghost" title="Download Template Excel Kosong">
 		<Download size={16} /> Template
 	</a>
-	<form method="POST" action="?/upload" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
-		<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-		<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
-			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
+	<div style="display:inline-block; position:relative;">
+		<input type="file" class="hidden" accept=".xlsx,.xls" onchange={handleOBUpload} />
+		<button type="button" class="btn btn-primary" onclick={(e) => { const prev = /** @type {HTMLInputElement} */ (e.currentTarget.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span> {uploadProgress}%{:else}<Upload size={16} /> Upload{/if}
 		</button>
-	</form>
+	</div>
 	<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
 		<Trash2 size={16} /> Rollback
 	</button>

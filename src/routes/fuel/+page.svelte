@@ -6,6 +6,7 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import DateRangePicker from '$lib/components/DateRangePicker.svelte';
 	import { showToast } from '$lib/stores/auth.js';
+	import { chunkedUpload } from '$lib/chunkedUpload.js';
 	import { Monitor, Upload, Trash2, Search, RefreshCw, Download } from '@lucide/svelte';
 
 	/** @type {{ data: any, form: any }} */
@@ -25,6 +26,7 @@
 	let confirmDelete = $state(false);
 	let uploadFile = $state(null);
 	let uploading = $state(false);
+	let uploadProgress = $state(0);
 
 	$effect(() => {
 		if (form?.uploadSuccess) {
@@ -58,6 +60,66 @@
 		dateEnd = '';
 		applyDateFilter();
 		showToast('Semua filter di-reset dan data di-refresh!', 'info');
+	}
+
+	async function handleFuelUpload(event) {
+		const input = /** @type {HTMLInputElement} */ (event.target);
+		const file = input.files?.[0];
+		if (!file) return;
+		input.value = '';
+
+		uploading = true;
+		uploadProgress = 0;
+		showToast('Membaca file Excel...', 'info');
+
+		const dbCols = ['unit_fix', 'date', 'periode', 'shift', 'time', 'reg_no', 'unit_code', 'unit_model', 'unit_type', 'brand', 'vendor', 'alocation', 'km', 'hm', 'fm_awal', 'fm_akhir', 'refueling', 'source', 'location', 'operator', 'fuelman', 'no_voucher'];
+
+		try {
+			const result = await chunkedUpload(file, {
+				table: 'fuel',
+				dbCols,
+				sheetName: 'fuel',
+				normalizeKey: (k) => {
+					let n = k.toLowerCase().trim().replace(/\s+/g, '_');
+					if (n === 'unit_code_fix') n = 'unit_fix';
+					return n;
+				},
+				filterRow: (row) => {
+					const keys = Object.keys(row).map(k => k.toLowerCase().trim().replace(/\s+/g, '_'));
+					return keys.includes('no_voucher') || keys.includes('unit_code');
+				},
+				transformValue: (col, v) => {
+					if (col === 'date' && v instanceof Date) {
+						const fixed = new Date(v.getTime() + 43200000);
+						const y = fixed.getFullYear();
+						const m = String(fixed.getMonth() + 1).padStart(2, '0');
+						const d = String(fixed.getDate()).padStart(2, '0');
+						return `${y}-${m}-${d}`;
+					}
+					if (col === 'time' && v instanceof Date) return v.toTimeString().split(' ')[0];
+					return v;
+				},
+				batchSize: 500,
+				onProgress: (p) => {
+					uploadProgress = p.percent;
+				}
+			});
+
+			if (result.success) {
+				showToast(`${result.totalSent} baris Fuel berhasil diimport!`, 'success');
+				await invalidateAll();
+			} else if (result.totalSent > 0) {
+				showToast(`${result.totalSent} baris diimport, tapi ada error: ${result.errors[0]}`, 'warning');
+				await invalidateAll();
+			} else {
+				showToast(result.errors[0] || 'Gagal upload data.', 'error');
+			}
+		} catch (err) {
+			showToast(`Error: ${err.message}`, 'error');
+		} finally {
+			uploading = false;
+			uploadProgress = 0;
+		}
 	}
 
 	let availableSources = $derived.by(() => {
@@ -142,12 +204,12 @@
 	<a href="/api/template?type=fuel" class="btn btn-ghost" title="Download Template Excel Kosong">
 		<Download size={16} /> Template
 	</a>
-	<form method="POST" action="?/upload" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
-		<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-		<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
-			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
+	<div style="display:inline-block; position:relative;">
+		<input type="file" class="hidden" accept=".xlsx,.xls" onchange={handleFuelUpload} />
+		<button type="button" class="btn btn-primary" onclick={(e) => { const prev = /** @type {HTMLInputElement} */ (e.currentTarget.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span> {uploadProgress}%{:else}<Upload size={16} /> Upload{/if}
 		</button>
-	</form>
+	</div>
 	<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
 		<Trash2 size={16} /> Rollback
 	</button>

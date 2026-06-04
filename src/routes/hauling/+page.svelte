@@ -7,6 +7,7 @@
 	import DateRangePicker from '$lib/components/DateRangePicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { showToast } from '$lib/stores/auth.js';
+	import { chunkedUpload } from '$lib/chunkedUpload.js';
 	import { Monitor, Upload, Trash2, Search, RefreshCw, Download } from '@lucide/svelte';
 
 	/** @type {{ data: any, form: any }} */
@@ -31,9 +32,9 @@
 	let showRollbackModal = $state(false);
 
 	// Upload
-	/** @type {File | null} */
 	let uploadFile = $state(null);
 	let uploading = $state(false);
+	let uploadProgress = $state(0);
 
 	// React to form results
 	$effect(() => {
@@ -80,6 +81,117 @@
 		dateEnd = '';
 		applyDateFilter();
 		showToast('Semua filter di-reset dan data di-refresh!', 'info');
+	}
+
+	async function handleHaulingUpload(event) {
+		const input = /** @type {HTMLInputElement} */ (event.target);
+		const file = input.files?.[0];
+		if (!file) return;
+		input.value = '';
+
+		uploading = true;
+		uploadProgress = 0;
+		showToast('Membaca file Excel...', 'info');
+
+		try {
+			if (subModule === 'hauling') {
+				const dbCols = ['jml', 'day', 'date', 'shift', 'loading_date', 'voucher_number', 'pit', 'block', 'seam', 'product', 'concat', 'vendor', 'unit_type', 'unit_id', 'payload_arrival_time', 'payload_embark_time', 'weight_gross', 'weight_empty', 'weight_nett', 'destination', 'route', 'loader_id', 'tonage'];
+				const result = await chunkedUpload(file, {
+					table: 'coal_hauling',
+					dbCols,
+					sheetName: 'Timbangan',
+					normalizeKey: (k) => k.toLowerCase().trim().replace(/\s+/g, '_'),
+					filterRow: (row) => {
+						const keys = Object.keys(row).map(k => k.toLowerCase().trim().replace(/\s+/g, '_'));
+						const vi = keys.indexOf('voucher_number');
+						if (vi < 0) return false;
+						const origKey = Object.keys(row)[vi];
+						return row[origKey] != null;
+					},
+					transformValue: (col, v) => {
+						if ((col === 'date' || col === 'loading_date') && v instanceof Date) {
+							const fixed = new Date(v.getTime() + 43200000);
+							return `${fixed.getFullYear()}-${String(fixed.getMonth() + 1).padStart(2, '0')}-${String(fixed.getDate()).padStart(2, '0')}`;
+						}
+						if ((col === 'payload_arrival_time' || col === 'payload_embark_time') && v instanceof Date) {
+							return v.toTimeString().split(' ')[0];
+						}
+						if ((col === 'weight_gross' || col === 'weight_empty' || col === 'weight_nett') && typeof v === 'number' && v >= 1000) {
+							return v / 1000;
+						}
+						return v;
+					},
+					batchSize: 500,
+					onProgress: (p) => { uploadProgress = p.percent; }
+				});
+
+				if (result.success) {
+					showToast(`${result.totalSent} baris Coal Hauling berhasil diimport!`, 'success');
+					await invalidateAll();
+				} else {
+					showToast(result.errors[0] || 'Gagal upload data.', 'error');
+				}
+			} else {
+				// Transit uses raw row-based parsing — handled client-side
+				const XLSX = await import('xlsx');
+				const buffer = await file.arrayBuffer();
+				const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+				const sheet = workbook.Sheets['Transit'] || workbook.Sheets[workbook.SheetNames[0]];
+				const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+
+				let headerIdx = 0;
+				for (let i = 0; i < Math.min(rawData.length, 10); i++) {
+					const rowStr = rawData[i].map(x => String(x).toLowerCase()).join(' ');
+					if (rowStr.includes('unit') && rowStr.includes('digger')) { headerIdx = i; break; }
+				}
+
+				const headers = rawData[headerIdx].map(h => String(h).toLowerCase().trim().replace(/\s+/g, '_'));
+				const dataRows = rawData.slice(headerIdx + 1);
+				const dbCols = ['date', 'shift', 'unit_code', 'model', 'type', 'brand', 'user', 'seam', 'block', 'product_code', 'product_inv', 'pit', 'digger', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'total', 'vessel', 'netto', 'periode', 'room'];
+
+				const rows = dataRows.filter(row => {
+					const dateIdx = headers.indexOf('date');
+					const unitIdx = headers.indexOf('unit_code');
+					return (dateIdx >= 0 && row[dateIdx] != null) || (unitIdx >= 0 && row[unitIdx] != null);
+				}).map(row => {
+					return dbCols.map(col => {
+						const idx = headers.indexOf(col);
+						if (idx < 0) return null;
+						let v = row[idx] ?? null;
+						if (col === 'date' && v instanceof Date) {
+							const fixed = new Date(v.getTime() + 43200000);
+							v = `${fixed.getFullYear()}-${String(fixed.getMonth() + 1).padStart(2, '0')}-${String(fixed.getDate()).padStart(2, '0')}`;
+						}
+						return v;
+					});
+				});
+
+				if (!rows.length) {
+					showToast('Tidak ada baris valid ditemukan.', 'error');
+				} else {
+					// Send in batches
+					const batchSize = 500;
+					let totalSent = 0;
+					for (let i = 0; i < rows.length; i += batchSize) {
+						const batch = rows.slice(i, i + batchSize);
+						const resp = await fetch('/api/upload-batch', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ table: 'coal_transit', columns: dbCols, rows: batch })
+						});
+						if (resp.ok) totalSent += batch.length;
+						uploadProgress = Math.round(((i + batch.length) / rows.length) * 100);
+					}
+					showToast(`${totalSent} baris Coal Transit berhasil diimport!`, 'success');
+					await invalidateAll();
+				}
+			}
+		} catch (err) {
+			showToast(`Error: ${err.message}`, 'error');
+		} finally {
+			uploading = false;
+			uploadProgress = 0;
+		}
 	}
 
 	// Client-side filtering (just like Streamlit's Pandas filtering)
@@ -203,12 +315,12 @@
 		<a href="/api/template?type={subModule}" class="btn btn-ghost" title="Download Template Excel Kosong">
 			<Download size={16} /> Template
 		</a>
-		<form method="POST" action="?/{subModule === 'transit' ? 'uploadTransit' : 'uploadHauling'}" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
-			<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-			<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
-				{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
+		<div style="display:inline-block; position:relative;">
+			<input type="file" class="hidden" accept=".xlsx,.xls" onchange={handleHaulingUpload} />
+			<button type="button" class="btn btn-primary" onclick={(e) => { const prev = /** @type {HTMLInputElement} */ (e.currentTarget.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+				{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span> {uploadProgress}%{:else}<Upload size={16} /> Upload{/if}
 			</button>
-		</form>
+		</div>
 		<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
 			<Trash2 size={16} /> Rollback
 		</button>
