@@ -75,7 +75,12 @@ export const actions = {
 				}
 				return dbCols.map(col => {
 					let v = normalized[col] ?? null;
-					if (col === 'date' && v instanceof Date) v = v.toISOString().split('T')[0];
+					if (col === 'date' && v instanceof Date) {
+						const y = v.getFullYear();
+						const m = String(v.getMonth() + 1).padStart(2, '0');
+						const d = String(v.getDate()).padStart(2, '0');
+						v = `${y}-${m}-${d}`;
+					}
 					if (col === 'time' && v instanceof Date) v = v.toTimeString().split(' ')[0];
 					return v;
 				});

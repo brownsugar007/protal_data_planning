@@ -124,7 +124,10 @@ export const actions = {
 
 							// Format dates
 							if (colName === 'date' && val instanceof Date) {
-								val = val.toISOString().split('T')[0];
+								const y = val.getFullYear();
+								const m = String(val.getMonth() + 1).padStart(2, '0');
+								const d = String(val.getDate()).padStart(2, '0');
+								val = `${y}-${m}-${d}`;
 							} else if (val instanceof Date) {
 								val = val.toTimeString().split(' ')[0];
 							}
