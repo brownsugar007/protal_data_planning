@@ -138,25 +138,24 @@
 	<title>Modul Fuel — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-	<div>
-		<h1 class="page-title">Modul Fuel</h1>
-		<p class="page-subtitle">Manajemen pemakaian dan logistik bahan bakar (Fuel).</p>
-	</div>
-	<div class="header-actions" style="display:flex; gap:12px; align-items:center;">
-		<a href="/api/template?type=fuel" class="btn btn-ghost" title="Download Template Excel Kosong">
-			<Download size={16} /> Template
-		</a>
-		<form method="POST" action="?/upload" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
-			<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-			<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
-				{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
-			</button>
-		</form>
-		<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
-			<Trash2 size={16} /> Rollback
+<div class="page-header">
+	<h1 class="page-title">Modul Fuel</h1>
+	<p class="page-subtitle">Manajemen pemakaian dan logistik bahan bakar (Fuel).</p>
+</div>
+
+<div class="action-bar" style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:12px;">
+	<a href="/api/template?type=fuel" class="btn btn-ghost" title="Download Template Excel Kosong">
+		<Download size={16} /> Template
+	</a>
+	<form method="POST" action="?/upload" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
+		<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
+		<button type="button" class="btn btn-primary" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
 		</button>
-	</div>
+	</form>
+	<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
+		<Trash2 size={16} /> Rollback
+	</button>
 </div>
 
 <div class="filter-bar">
@@ -196,14 +195,14 @@
 				<label class="form-label" for="f-search">Pencarian</label>
 				<input id="f-search" type="text" class="form-input" placeholder="Voucher/ID..." bind:value={filterSearch} />
 			</div>
-		</div>
-		<div class="filter-actions">
+			<div class="filter-actions" style="margin-top:0; padding-top:0; border-top:none; justify-content:flex-start;">
 				<button class="btn btn-primary" onclick={applyDateFilter}><Search size={16} /> Cari</button>
 				<button class="btn btn-ghost" onclick={refresh}><RefreshCw size={16} /></button>
 				{#if filteredData.length > 0}
 					<button class="btn btn-success" style="background:#10b981;color:white;border:none;" onclick={downloadExcel}><Download size={16} /> Excel</button>
 				{/if}
 			</div>
+		</div>
 	</div>
 
 	{#if filteredData.length > 0}
