@@ -205,7 +205,7 @@
 		<Download size={16} /> Template
 	</a>
 	<div style="display:inline-block; position:relative;">
-		<input type="file" class="hidden" accept=".xlsx,.xls" onchange={handleFuelUpload} />
+		<input type="file" class="hidden" accept=".xlsx,.xls,.csv" onchange={handleFuelUpload} />
 		<button type="button" class="btn btn-primary" onclick={(e) => { const prev = /** @type {HTMLInputElement} */ (e.currentTarget.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
 			{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span> {uploadProgress}%{:else}<Upload size={16} /> Upload{/if}
 		</button>

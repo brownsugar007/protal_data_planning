@@ -1,14 +1,14 @@
 import * as XLSX from 'xlsx';
 
 /**
- * Parse an Excel file on the client side and upload rows in batches.
+ * Parse an Excel or CSV file on the client side and upload rows in batches.
  * This bypasses Vercel's 4.5MB body limit and 10s function timeout.
  *
- * @param {File} file - The Excel file to parse
+ * @param {File} file - The Excel/CSV file to parse
  * @param {object} config - Configuration object
  * @param {string} config.table - Target database table name
  * @param {string[]} config.dbCols - Database column names
- * @param {string} [config.sheetName] - Optional sheet name to read
+ * @param {string} [config.sheetName] - Optional sheet name to read (Excel only)
  * @param {(key: string) => string} [config.normalizeKey] - Optional key normalizer
  * @param {(col: string, value: any) => any} [config.transformValue] - Optional value transformer
  * @param {(row: object) => boolean} [config.filterRow] - Optional row filter
@@ -28,19 +28,31 @@ export async function chunkedUpload(file, config) {
 		onProgress = () => {}
 	} = config;
 
-	// Read file as ArrayBuffer
-	const buffer = await file.arrayBuffer();
-	const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+	// Detect file type
+	const fileName = file.name.toLowerCase();
+	const isCSV = fileName.endsWith('.csv');
 
-	// Find sheet
-	let sheet;
-	if (sheetName) {
-		sheet = workbook.Sheets[sheetName] || workbook.Sheets[workbook.SheetNames[0]];
+	let jsonData;
+
+	if (isCSV) {
+		// Parse CSV: read as text, then use XLSX to parse
+		const text = await file.text();
+		const workbook = XLSX.read(text, { type: 'string', cellDates: true });
+		const sheet = workbook.Sheets[workbook.SheetNames[0]];
+		jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
 	} else {
-		sheet = workbook.Sheets[workbook.SheetNames[0]];
+		// Parse Excel
+		const buffer = await file.arrayBuffer();
+		const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+		let sheet;
+		if (sheetName) {
+			sheet = workbook.Sheets[sheetName] || workbook.Sheets[workbook.SheetNames[0]];
+		} else {
+			sheet = workbook.Sheets[workbook.SheetNames[0]];
+		}
+		jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
 	}
 
-	const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
 	if (!jsonData.length) {
 		return { success: false, totalSent: 0, errors: ['File tidak mengandung data.'] };
 	}
