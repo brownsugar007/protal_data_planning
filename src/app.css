@@ -608,10 +608,18 @@ body.sidebar-collapsed .main-content {
 }
 
 .filter-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
 	gap: 12px;
 	align-items: end;
+}
+.filter-grid > * {
+	flex: 1 1 160px;
+	min-width: 160px;
+}
+.filter-grid > .filter-actions {
+	flex: 0 1 auto;
+	min-width: max-content;
 }
 
 .filter-actions {
