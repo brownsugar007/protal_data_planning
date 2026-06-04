@@ -76,9 +76,11 @@ export const actions = {
 				return dbCols.map(col => {
 					let v = normalized[col] ?? null;
 					if (col === 'date' && v instanceof Date) {
-						const y = v.getFullYear();
-						const m = String(v.getMonth() + 1).padStart(2, '0');
-						const d = String(v.getDate()).padStart(2, '0');
+						// Add 12 hours to fix Excel float precision bugs (e.g. 23:59:59 of previous day)
+						const fixed = new Date(v.getTime() + 43200000);
+						const y = fixed.getFullYear();
+						const m = String(fixed.getMonth() + 1).padStart(2, '0');
+						const d = String(fixed.getDate()).padStart(2, '0');
 						v = `${y}-${m}-${d}`;
 					}
 					if (col === 'time' && v instanceof Date) v = v.toTimeString().split(' ')[0];

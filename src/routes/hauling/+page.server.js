@@ -104,9 +104,10 @@ export const actions = {
 				return dbCols.map(col => {
 					let v = normalized[col] ?? null;
 					if ((col === 'date' || col === 'loading_date') && v instanceof Date) {
-						const y = v.getFullYear();
-						const m = String(v.getMonth() + 1).padStart(2, '0');
-						const d = String(v.getDate()).padStart(2, '0');
+						const fixed = new Date(v.getTime() + 43200000);
+						const y = fixed.getFullYear();
+						const m = String(fixed.getMonth() + 1).padStart(2, '0');
+						const d = String(fixed.getDate()).padStart(2, '0');
 						v = `${y}-${m}-${d}`;
 					}
 					if ((col === 'payload_arrival_time' || col === 'payload_embark_time') && v instanceof Date) {
@@ -171,9 +172,10 @@ export const actions = {
 					if (idx < 0) return null;
 					let v = row[idx] ?? null;
 					if (col === 'date' && v instanceof Date) {
-						const y = v.getFullYear();
-						const m = String(v.getMonth() + 1).padStart(2, '0');
-						const d = String(v.getDate()).padStart(2, '0');
+						const fixed = new Date(v.getTime() + 43200000);
+						const y = fixed.getFullYear();
+						const m = String(fixed.getMonth() + 1).padStart(2, '0');
+						const d = String(fixed.getDate()).padStart(2, '0');
 						v = `${y}-${m}-${d}`;
 					}
 					return v;
