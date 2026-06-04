@@ -77,6 +77,34 @@
 		return d;
 	}
 
+	let availablePits = $derived.by(() => {
+		let opts = new Set();
+		if (data && data.allData) {
+			for (const tab in data.allData) {
+				const d = data.allData[tab];
+				d.forEach(r => { if (r.pit) opts.add(r.pit); });
+			}
+		}
+		let arr = [...opts];
+		arr.sort();
+		if (filterPit !== 'Semua' && !arr.includes(filterPit)) arr.unshift(filterPit);
+		return arr;
+	});
+
+	let availableOwners = $derived.by(() => {
+		let opts = new Set();
+		if (data && data.allData) {
+			for (const tab in data.allData) {
+				const d = data.allData[tab];
+				d.forEach(r => { if (r.owner) opts.add(r.owner); });
+			}
+		}
+		let arr = [...opts];
+		arr.sort();
+		if (filterOwner !== 'Semua' && !arr.includes(filterOwner)) arr.unshift(filterOwner);
+		return arr;
+	});
+
 	function getColumns(tabName) {
 		const d = data.allData[tabName];
 		if (!d || !d.length) return [];
@@ -110,9 +138,25 @@
 	<title>Modul Overburden — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header">
-	<h1 class="page-title">Modul Overburden (OB)</h1>
-	<p class="page-subtitle">Manajemen data pengupasan tanah (Overburden) — 10 tabel data.</p>
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+	<div>
+		<h1 class="page-title">Modul Overburden (OB)</h1>
+		<p class="page-subtitle">Manajemen data pengupasan tanah (Overburden) — 10 tabel data.</p>
+	</div>
+	<div class="header-actions" style="display:flex; gap:8px; align-items:center;">
+		<a href="/api/template?type=ob" class="btn btn-ghost" style="color:var(--text-secondary);background:white;border:1px solid #e2e8f0;" title="Download Template Excel Kosong">
+			<Download size={16} /> Template
+		</a>
+		<form method="POST" action="?/upload" enctype="multipart/form-data" style="display:inline-block;" use:enhance={() => { uploading = true; return async ({ update }) => { uploading = false; await update(); }; }}>
+			<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
+			<button type="button" class="btn" style="background:#3b82f6;color:white;border:none;" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
+				{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
+			</button>
+		</form>
+		<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
+			<Trash2 size={16} /> Rollback
+		</button>
+	</div>
 </div>
 
 <div class="filter-bar">
@@ -151,34 +195,6 @@
 				<button class="btn btn-primary" onclick={applyDateFilter}><Search size={16} /> Cari</button>
 				<button class="btn btn-ghost" onclick={refresh}><RefreshCw size={16} /></button>
 				<button class="btn btn-success" style="background:#10b981;color:white;border:none;" onclick={downloadExcel}><Download size={16} /> Excel</button>
-				
-				<!-- UPLOAD FORM & TEMPLATE -->
-				<a href="/api/template?type=ob" class="btn btn-ghost" style="color:var(--text-secondary);" title="Download Template Excel Kosong">
-					<Download size={16} /> Template
-				</a>
-				<form
-					method="POST"
-					action="?/upload"
-					enctype="multipart/form-data"
-					style="display: inline-block;"
-					use:enhance={() => {
-						uploading = true;
-						return async ({ update }) => {
-							uploading = false;
-							await update();
-						};
-					}}
-				>
-					<input type="file" name="file" class="hidden" accept=".xlsx,.xls" onchange={(e) => { const t = /** @type {HTMLElement} */ (e.target); const f = t.closest('form'); if (f) f.requestSubmit(); }} />
-					<button type="button" class="btn" style="background:#3b82f6;color:white;border:none;" onclick={(e) => { const t = /** @type {HTMLElement} */ (e.currentTarget); const prev = /** @type {HTMLInputElement} */ (t.previousElementSibling); if (prev) { prev.value = ''; prev.click(); } }} disabled={uploading}>
-						{#if uploading}<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px;"></span>{:else}<Upload size={16} />{/if} Upload
-					</button>
-				</form>
-				
-				<!-- ROLLBACK BUTTON -->
-				<button class="btn btn-danger" onclick={() => showRollbackModal = true}>
-					<Trash2 size={16} /> Rollback
-				</button>
 			</div>
 	</div>
 
