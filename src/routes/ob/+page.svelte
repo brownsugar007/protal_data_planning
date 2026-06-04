@@ -138,11 +138,6 @@
 	<title>Modul Overburden — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header">
-	<h1 class="page-title">Modul Overburden (OB)</h1>
-	<p class="page-subtitle">Manajemen data pengupasan tanah (Overburden) — 10 tabel data.</p>
-</div>
-
 <div class="action-bar" style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:12px;">
 	<a href="/api/template?type=ob" class="btn btn-ghost" title="Download Template Excel Kosong">
 		<Download size={16} /> Template

@@ -138,11 +138,6 @@
 	<title>Modul Fuel — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header">
-	<h1 class="page-title">Modul Fuel</h1>
-	<p class="page-subtitle">Manajemen pemakaian dan logistik bahan bakar (Fuel).</p>
-</div>
-
 <div class="action-bar" style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:12px;">
 	<a href="/api/template?type=fuel" class="btn btn-ghost" title="Download Template Excel Kosong">
 		<Download size={16} /> Template

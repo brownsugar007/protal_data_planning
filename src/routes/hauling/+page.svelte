@@ -188,11 +188,6 @@
 	<title>Coal Hauling & Transit — MGE Portal</title>
 </svelte:head>
 
-<div class="page-header">
-	<h1 class="page-title">Modul Coal Hauling & Transit</h1>
-	<p class="page-subtitle">Sinkronisasi data produksi batubara (Coal Hauling dan Coal Transit).</p>
-</div>
-
 <div class="toolbar" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px;">
 	<!-- Sub-module Toggle -->
 	<div class="sub-toggle" style="margin-bottom:0;">
